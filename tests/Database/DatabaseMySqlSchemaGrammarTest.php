@@ -688,6 +688,25 @@ class DatabaseMySqlSchemaGrammarTest extends PHPUnit_Framework_TestCase
 
         $this->assertEquals(1, count($statements));
         $this->assertEquals('alter table `users` add `foo_bar_baz` varchar(255) generated always as (json_unquote(foo->"$.bar.baz")) not null', $statements[0]);
+
+    public function testAddingIpAddress()
+    {
+        $blueprint = new Blueprint('users');
+        $blueprint->ipAddress('foo');
+        $statements = $blueprint->toSql($this->getConnection(), $this->getGrammar());
+
+        $this->assertEquals(1, count($statements));
+        $this->assertEquals('alter table `users` add `foo` varchar(45) not null', $statements[0]);
+    }
+
+    public function testAddingMacAddress()
+    {
+        $blueprint = new Blueprint('users');
+        $blueprint->macAddress('foo');
+        $statements = $blueprint->toSql($this->getConnection(), $this->getGrammar());
+
+        $this->assertEquals(1, count($statements));
+        $this->assertEquals('alter table `users` add `foo` varchar(17) not null', $statements[0]);
     }
 
     protected function getConnection()

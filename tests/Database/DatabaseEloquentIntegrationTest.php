@@ -5,6 +5,7 @@ use Illuminate\Database\Capsule\Manager as DB;
 use Illuminate\Database\Eloquent\Model as Eloquent;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Pagination\AbstractPaginator as Paginator;
+use Illuminate\Database\Eloquent\Collection;
 
 class DatabaseEloquentIntegrationTest extends PHPUnit_Framework_TestCase
 {
@@ -50,7 +51,6 @@ class DatabaseEloquentIntegrationTest extends PHPUnit_Framework_TestCase
         foreach (['default', 'second_connection'] as $connection) {
             $this->schema($connection)->create('users', function ($table) {
                 $table->increments('id');
-                $table->string('name')->nullable();
                 $table->string('email');
                 $table->timestamps();
             });
@@ -222,32 +222,6 @@ class DatabaseEloquentIntegrationTest extends PHPUnit_Framework_TestCase
         $query = EloquentTestUser::groupBy('email')->getQuery();
 
         $this->assertEquals(3, $query->getCountForPagination());
-    }
-
-    public function testFirstOrCreate()
-    {
-        $user1 = EloquentTestUser::firstOrCreate(['email' => 'taylorotwell@gmail.com']);
-
-        $this->assertEquals('taylorotwell@gmail.com', $user1->email);
-        $this->assertNull($user1->name);
-
-        $user2 = EloquentTestUser::firstOrCreate(
-            ['email' => 'taylorotwell@gmail.com'],
-            ['name' => 'Taylor Otwell']
-        );
-
-        $this->assertEquals($user1->id, $user2->id);
-        $this->assertEquals('taylorotwell@gmail.com', $user2->email);
-        $this->assertNull($user2->name);
-
-        $user3 = EloquentTestUser::firstOrCreate(
-            ['email' => 'abigailotwell@gmail.com'],
-            ['name' => 'Abigail Otwell']
-        );
-
-        $this->assertNotEquals($user3->id, $user1->id);
-        $this->assertEquals('abigailotwell@gmail.com', $user3->email);
-        $this->assertEquals('Abigail Otwell', $user3->name);
     }
 
     public function testPluck()
@@ -892,6 +866,38 @@ class DatabaseEloquentIntegrationTest extends PHPUnit_Framework_TestCase
         $this->assertInstanceOf('EloquentTestItem', $item);
     }
 
+    public function estDelegatesWithRelationship()
+    {
+        $user = EloquentTestUser::create(['email' => 'taylor@laravel.com']);
+        $post = $user->posts()->create(['name' => 'A great name for a post']);
+        $childPost = $post->childPosts()->create(['name' => 'A great name for a child post', 'user_id' => $user->id]);
+
+        $this->assertEquals($childPost->id, $user->childPost->id);
+    }
+
+    public function testDelegatesWithAttribute()
+    {
+        $user = EloquentTestUser::create(['email' => 'taylor@laravel.com']);
+        $post = $user->posts()->create(['name' => 'A great name for a post']);
+        $childPost = $post->childPosts()->create(['name' => 'A great name for a child post', 'user_id' => $user->id]);
+
+        $this->assertEquals($childPost->name, $user->child_post_name);
+    }
+
+    public function testDelegatesWithRelationshipNull()
+    {
+        $user = EloquentTestUser::create(['email' => 'taylor@laravel.com']);
+
+        $this->assertNull($user->childPost);
+    }
+
+    public function testDelegatesWithRelationshipCollection()
+    {
+        $user = EloquentTestUser::create(['email' => 'taylor@laravel.com']);
+
+        $this->assertInstanceOf(Collection::class, $user->childPosts);
+    }
+
     /**
      * Helpers...
      */
@@ -954,6 +960,21 @@ class EloquentTestUser extends Eloquent
     {
         return $this->morphMany('EloquentTestPhoto', 'imageable');
     }
+
+    public function childPosts()
+    {
+        return $this->delegatesTo('post');
+    }
+
+    public function childPost()
+    {
+        return $this->delegatesTo('post');
+    }
+
+    public function getChildPostNameAttribute()
+    {
+        return $this->delegatesTo('name', 'post', 'childPost');
+    }
 }
 
 class EloquentTestUserWithGlobalScope extends EloquentTestUser
@@ -986,6 +1007,11 @@ class EloquentTestPost extends Eloquent
     public function childPosts()
     {
         return $this->hasMany('EloquentTestPost', 'parent_id');
+    }
+
+    public function childPost()
+    {
+        return $this->hasOne('EloquentTestPost', 'parent_id');
     }
 
     public function parentPost()

@@ -173,6 +173,15 @@ class DatabaseEloquentCollectionTest extends PHPUnit_Framework_TestCase
         $this->assertEquals(BaseCollection::class, get_class($c));
     }
 
+    public function testMappingToEmptyCollectionReturnsABaseCollection()
+    {
+        $c = (new Collection([]))->map(function ($item) {
+            return 'not called';
+        });
+
+        $this->assertEquals(BaseCollection::class, get_class($c));
+    }
+
     public function testCollectionDiffsWithGivenCollection()
     {
         $one = m::mock('Illuminate\Database\Eloquent\Model');

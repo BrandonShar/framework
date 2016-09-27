@@ -126,7 +126,7 @@ class Collection extends BaseCollection implements QueueableCollection
 
         return $result->contains(function ($item) {
             return ! $item instanceof Model;
-        }) ? $result->toBase() : $result;
+        }) || $result->isEmpty() ? $result->toBase() : $result;
     }
 
     /**

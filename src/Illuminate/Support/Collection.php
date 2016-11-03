@@ -830,14 +830,14 @@ class Collection implements ArrayAccess, Arrayable, Countable, IteratorAggregate
             throw new InvalidArgumentException("You requested {$amount} items, but there are only {$count} items in the collection");
         }
 
-        $weights = $this->map(function ($item) use ($callback) {
-            $value = $callback($item);
-            return $value == 0 ? 0 : rand(1, $value);
+        $order = $this->map(function ($item) use ($callback) {
+            $weight = $callback($item);
+            return $weight == 0 ? 0 : rand(1, $weight);
         })->all();
 
         $items = $this->items;
 
-        array_multisort($weights, SORT_DESC, $items);
+        array_multisort($order, SORT_DESC, $items);
 
         if ($amount == 1) {
             return $items[0];

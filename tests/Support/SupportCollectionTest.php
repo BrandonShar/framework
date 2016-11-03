@@ -781,15 +781,15 @@ class SupportCollectionTest extends PHPUnit_Framework_TestCase
 
     public function testRandomWithWeights()
     {
-        $data = new Collection([0, 10, 5, 2, 5, 1, 3]);
+        $data = new Collection([0, 25, 25, 50]);
         $random = $data->random(function($item) {
             return $item ** 2;
-        }, 7);
+        }, 4);
 
-        $this->assertCount(7, $random);
+        $this->assertCount(4, $random);
         $this->assertEquals(0, $random->pop());
 
-        $data = new Collection([0, 0, 0, 100, 0, 0, 0, 0]);
+        $data = new Collection([0, 100, 0, 0, 0, 0]);
         $random = $data->random(function ($item) {
             return $item;
         });

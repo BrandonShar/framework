@@ -802,24 +802,48 @@ class Collection implements ArrayAccess, Arrayable, Countable, IteratorAggregate
     /**
      * Get one or more items randomly from the collection.
      *
-     * @param  int  $amount
+     * @param  callable|int  $callbackOrAmount
+     * @param  int           $amount
+     * @param  mixed         $seed
      * @return mixed
      *
      * @throws \InvalidArgumentException
      */
-    public function random($amount = 1)
+    public function random($callbackOrAmount = 1, $amount = 1, $seed = null)
     {
-        if ($amount > ($count = $this->count())) {
+        if (! is_null($seed)) {
+            srand($seed);
+        }
+
+        $count = $this->count();
+
+        if ($this->useAsCallable($callbackOrAmount)) {
+            $callback = $callbackOrAmount;
+        } else {
+            $amount = $callbackOrAmount;
+            $callback = function () use ($count) {
+                return $count;
+            };
+        }
+
+        if ($amount > $count) {
             throw new InvalidArgumentException("You requested {$amount} items, but there are only {$count} items in the collection");
         }
 
-        $keys = array_rand($this->items, $amount);
+        $weights = $this->map(function ($item) use ($callback) {
+            $value = $callback($item);
+            return $value == 0 ? 0 : rand(1, $value);
+        })->all();
+
+        $items = $this->items;
+
+        array_multisort($weights, SORT_DESC, $items);
 
         if ($amount == 1) {
-            return $this->items[$keys];
+            return $items[0];
         }
 
-        return new static(array_intersect_key($this->items, array_flip($keys)));
+        return (new static($items))->take($amount);
     }
 
     /**
@@ -898,24 +922,17 @@ class Collection implements ArrayAccess, Arrayable, Countable, IteratorAggregate
     /**
      * Shuffle the items in the collection.
      *
-     * @param int $seed
+     * @param callable|int  $seedOrCallback
+     * @param int           $seed
      * @return static
      */
-    public function shuffle($seed = null)
+    public function shuffle($seedOrCallback = null, $seed = null)
     {
-        $items = $this->items;
-
-        if (is_null($seed)) {
-            shuffle($items);
-        } else {
-            srand($seed);
-
-            usort($items, function () {
-                return rand(-1, 1);
-            });
+        if ($this->useAsCallable($seedOrCallback)) {
+            return $this->random($seedOrCallback, $this->count(), $seed);
         }
 
-        return new static($items);
+        return $this->random($this->count(), null, $seedOrCallback);
     }
 
     /**

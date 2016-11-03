@@ -779,6 +779,51 @@ class SupportCollectionTest extends PHPUnit_Framework_TestCase
         $this->assertCount(3, $random);
     }
 
+    public function testRandomWithWeights()
+    {
+        $data = new Collection([0, 10, 5, 2, 5, 1, 3]);
+        $random = $data->random(function($item) {
+            return $item ** 2;
+        }, 7);
+
+        $this->assertCount(7, $random);
+        $this->assertEquals(0, $random->pop());
+
+        $data = new Collection([0, 0, 0, 100, 0, 0, 0, 0]);
+        $random = $data->random(function ($item) {
+            return $item;
+        });
+
+        $this->assertEquals(100, $random);
+    }
+
+    public function testShuffleWithWeights()
+    {
+        $data = new Collection([10, 10, 40, 25, 15]);
+
+        $randomNoWeights = $data->shuffle(5);
+        $randomWithWeights = $data->shuffle(function ($item) {
+            return $item;
+        }, 5);
+
+        $this->assertNotEquals($randomWithWeights->all(), $randomNoWeights->all());
+    }
+
+    public function testShuffle()
+    {
+        $data = new Collection([1,2,3,4,5]);
+        $shuffled = $data->shuffle();
+
+        $this->assertEquals($shuffled->sort()->values()->all(), $data->sort()->values()->all());
+    }
+
+    public function testShuffleSeeded()
+    {
+        $data = new Collection([1, 2, 3, 4, 5]);
+
+        $this->assertEquals($data->shuffle(1)->all(), $data->shuffle(1)->all());
+    }
+
     /**
      * @expectedException InvalidArgumentException
      */
